@@ -115,7 +115,7 @@ router.post('/invite', isAdmin, async (req, res) => {
 
     const inviteUrl = `${process.env.FRONTEND_URL}/register.html?token=${inviteToken}&email=${email}`;
 
-    await sendEmail({
+    const emailResult = await sendEmail({
       to:      email,
       subject: `You are invited to join BioXape as ${role.charAt(0).toUpperCase() + role.slice(1)}`,
       html: `
@@ -135,6 +135,11 @@ router.post('/invite', isAdmin, async (req, res) => {
         </div>
       `
     });
+
+    if (!emailResult.success) {
+      await User.findByIdAndDelete(newUser._id);
+      return res.status(500).json({ success: false, message: `Failed to send invitation email: ${emailResult.error}` });
+    }
 
     // In-app notification to admin confirming invite sent
     await Notification.create({

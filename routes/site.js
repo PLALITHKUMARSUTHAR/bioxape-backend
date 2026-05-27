@@ -19,7 +19,7 @@ siteRouter.get('/all', async (req, res) => {
     const configs = await SiteConfig.find({});
     const result  = {};
     configs.forEach(c => { result[c.section] = c.data; });
-    return res.json({ success: true, config: result });
+    return res.json({ success: true, data: result });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }

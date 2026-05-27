@@ -14,10 +14,19 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+// Verify SMTP connection on load
+transporter.verify((error, success) => {
+  if (error) {
+    console.error('❌ SMTP connection verification failed:', error.message);
+  } else {
+    console.log('🚀 SMTP server is ready to take messages');
+  }
+});
+
 const sendEmail = async ({ to, subject, html, text }) => {
   try {
     const info = await transporter.sendMail({
-      from:    `"BioXape" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
+      from:    `"BioXape" <${process.env.EMAIL_USER}>`,
       to,
       subject,
       html,

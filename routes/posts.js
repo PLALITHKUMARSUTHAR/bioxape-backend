@@ -76,8 +76,307 @@ router.get('/public/feed', async (req, res) => {
   }
 });
 
-// All routes below require authentication
 router.use(protect);
+
+// ── GET /api/posts/my-posts ──────────────────────────────────
+// Returns the logged-in author's posts
+router.get('/my-posts', isAuthor, async (req, res) => {
+  try {
+    const { status, limit, page = 1 } = req.query;
+    const filter = { authorId: req.user._id };
+    if (status) filter.status = status;
+
+    let query = Post.find(filter).sort({ updatedAt: -1 });
+    if (limit) query = query.limit(parseInt(limit));
+    query = query.skip((parseInt(page) - 1) * (parseInt(limit) || 20));
+
+    const posts = await query;
+    return res.json({ success: true, data: posts });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── POST /api/posts/submit ────────────────────────────────────
+// Creates a new post and immediately submits it for review
+router.post('/submit', isAuthor, async (req, res) => {
+  try {
+    const { title, excerpt, category, allCategories, contentType, tags, bodyHtml, docxFileUrl, docxPublicId, coverImageUrl, coverPublicId, editorNote } = req.body;
+
+    if (!title || !excerpt || !category) {
+      return res.status(400).json({ success: false, message: 'Title, excerpt and category are required.' });
+    }
+    if (!docxFileUrl) {
+      return res.status(400).json({ success: false, message: 'Please upload your Word document before submitting.' });
+    }
+
+    const author = await User.findById(req.user._id);
+    const editorId = author.assignedEditorId || null;
+    let editorName = '';
+    if (editorId) {
+      const editor = await User.findById(editorId);
+      if (editor) editorName = editor.name;
+    }
+
+    const post = await Post.create({
+      title, excerpt, category,
+      allCategories: allCategories || [category],
+      contentType:   contentType || 'article',
+      tags:          tags || [],
+      bodyHtml:      bodyHtml || '',
+      docxFileUrl,
+      docxPublicId:  docxPublicId || '',
+      coverImageUrl: coverImageUrl || '',
+      coverPublicId: coverPublicId || '',
+      authorId:      req.user._id,
+      authorName:    req.user.name,
+      editorId,
+      editorName,
+      status:        editorId ? 'submitted' : 'admin_review',
+      submittedAt:   new Date(),
+      editorNote:    editorNote || '',
+      revisionHistory: [{
+        status: 'submitted', comment: editorNote || 'Submitted for review.',
+        byId: req.user._id, byName: req.user.name, byRole: 'author'
+      }]
+    });
+
+    // Notify appropriate reviewer
+    if (editorId) {
+      await notifyUser(editorId, {
+        fromUserId: req.user._id,
+        fromName:   req.user.name,
+        type:       'post_submitted',
+        postId:     post._id,
+        postTitle:  post.title,
+        message:    `${req.user.name} submitted a post for your review: "${post.title}"`,
+      });
+    } else {
+      const admin = await User.findOne({ role: 'admin' });
+      if (admin) {
+        await notifyUser(admin._id, {
+          fromUserId: req.user._id,
+          fromName:   req.user.name,
+          type:       'post_submitted',
+          postId:     post._id,
+          postTitle:  post.title,
+          message:    `${req.user.name} submitted a post (no editor assigned): "${post.title}"`,
+        });
+      }
+    }
+
+    return res.status(201).json({ success: true, post });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── GET /api/posts/editor-queue ──────────────────────────────
+// Returns posts assigned to the editor (or all if admin)
+router.get('/editor-queue', isEditor, async (req, res) => {
+  try {
+    const filter = {};
+    if (req.user.role !== 'admin') {
+      filter.editorId = req.user._id;
+    }
+    const posts = await Post.find(filter).sort({ updatedAt: -1 });
+    return res.json({ success: true, data: posts });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── PUT /api/posts/:id/editor-review ──────────────────────────
+// Editor decides: approve (sends to admin), changes_needed, or rejected
+router.put('/:id/editor-review', isEditor, async (req, res) => {
+  try {
+    const { status, editorComment } = req.body;
+    if (!['admin_review', 'changes_needed', 'rejected'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Invalid status for editor review.' });
+    }
+
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ success: false, message: 'Post not found.' });
+
+    if (req.user.role !== 'admin') {
+      const isAssigned = post.editorId && post.editorId.toString() === req.user._id.toString();
+      if (!isAssigned) return res.status(403).json({ success: false, message: 'This post is not assigned to you.' });
+    }
+
+    post.status           = status;
+    post.editorComment    = editorComment || '';
+    post.editorReviewedAt = new Date();
+
+    post.revisionHistory.push({
+      status,
+      comment: editorComment || `Reviewed by editor: ${status}`,
+      byId: req.user._id,
+      byName: req.user.name,
+      byRole: req.user.role
+    });
+
+    await post.save();
+
+    // Send notifications
+    if (status === 'admin_review') {
+      const admin = await User.findOne({ role: 'admin' });
+      if (admin) {
+        await notifyUser(admin._id, {
+          fromUserId: req.user._id, fromName: req.user.name,
+          type: 'editor_approved', postId: post._id, postTitle: post.title,
+          message: `Editor ${req.user.name} approved "${post.title}". Ready for your review.`,
+        });
+      }
+      await notifyUser(post.authorId, {
+        fromUserId: req.user._id, fromName: req.user.name,
+        type: 'editor_approved', postId: post._id, postTitle: post.title,
+        message: `Your post "${post.title}" was approved by the editor and sent to admin.`,
+      });
+    } else if (status === 'changes_needed') {
+      await notifyUser(post.authorId, {
+        fromUserId: req.user._id, fromName: req.user.name,
+        type: 'changes_requested', postId: post._id, postTitle: post.title,
+        message: `Changes requested for "${post.title}": ${editorComment || 'See editor comments.'}`,
+      });
+    } else if (status === 'rejected') {
+      await notifyUser(post.authorId, {
+        fromUserId: req.user._id, fromName: req.user.name,
+        type: 'admin_rejected', postId: post._id, postTitle: post.title,
+        message: `Your post "${post.title}" was rejected by the editor. Reason: ${editorComment || 'See comments.'}`,
+      });
+    }
+
+    return res.json({ success: true, message: `Post reviewed successfully.`, post });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── GET /api/posts/admin-queue ────────────────────────────────
+// Returns all posts for the admin review queue and dashboard stats
+router.get('/admin-queue', isAdmin, async (req, res) => {
+  try {
+    const posts = await Post.find({}).sort({ updatedAt: -1 });
+    return res.json({ success: true, data: posts });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── GET /api/posts/all ────────────────────────────────────────
+// Returns all posts with optional status filter
+router.get('/all', isAdmin, async (req, res) => {
+  try {
+    const { status } = req.query;
+    const filter = {};
+    if (status) filter.status = status;
+    const posts = await Post.find(filter).sort({ updatedAt: -1 });
+    return res.json({ success: true, data: posts });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── PUT /api/posts/:id/admin-approve ──────────────────────────
+// Admin approves and publishes a post to Blogger
+router.put('/:id/admin-approve', isAdmin, async (req, res) => {
+  try {
+    const { allCategories, adminComment } = req.body;
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ success: false, message: 'Post not found.' });
+
+    post.adminComment    = adminComment || '';
+    post.adminReviewedAt = new Date();
+    post.status          = 'approved';
+    post.publishedAt     = new Date();
+
+    if (allCategories) {
+      post.allCategories = allCategories;
+      if (allCategories.length > 0) post.category = allCategories[0];
+    }
+
+    post.revisionHistory.push({
+      status: 'approved', comment: adminComment || 'Approved by admin.',
+      byId: req.user._id, byName: req.user.name, byRole: 'admin'
+    });
+
+    // Publish to Blogger
+    try {
+      const result = await publishToBlogger(post);
+      if (result.success) {
+        post.bloggerPostId  = result.postId;
+        post.bloggerPostUrl = result.postUrl;
+        post.status         = 'published';
+        post.revisionHistory.push({
+          status: 'published', comment: 'Auto-published to Blogger.',
+          byId: req.user._id, byName: req.user.name, byRole: 'admin'
+        });
+
+        // Update author stats
+        await User.findByIdAndUpdate(post.authorId, { $inc: { postsPublished: 1 } });
+      }
+    } catch (bloggerErr) {
+      console.error('Blogger publish error:', bloggerErr.message);
+      // Fallback to approved
+      post.status = 'approved';
+    }
+
+    await post.save();
+
+    // Notify author
+    await notifyUser(post.authorId, {
+      fromUserId: req.user._id, fromName: req.user.name,
+      type: 'post_published', postId: post._id, postTitle: post.title,
+      message: `🎉 Your post "${post.title}" has been approved and published on BioXape!${post.bloggerPostUrl ? ' View it at: ' + post.bloggerPostUrl : ''}`,
+    });
+
+    // Notify editor
+    if (post.editorId) {
+      await notifyUser(post.editorId, {
+        fromUserId: req.user._id, fromName: req.user.name,
+        type: 'admin_approved', postId: post._id, postTitle: post.title,
+        message: `Admin published "${post.title}" — great review work!`,
+      });
+    }
+
+    return res.json({ success: true, message: 'Post approved and published.', post });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── PUT /api/posts/:id/admin-reject ───────────────────────────
+// Admin rejects the post with an explanation
+router.put('/:id/admin-reject', isAdmin, async (req, res) => {
+  try {
+    const { adminComment } = req.body;
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ success: false, message: 'Post not found.' });
+
+    post.status          = 'rejected';
+    post.adminComment    = adminComment || '';
+    post.adminReviewedAt = new Date();
+
+    post.revisionHistory.push({
+      status: 'rejected', comment: adminComment || 'Rejected by admin.',
+      byId: req.user._id, byName: req.user.name, byRole: 'admin'
+    });
+
+    await post.save();
+
+    // Notify author
+    await notifyUser(post.authorId, {
+      fromUserId: req.user._id, fromName: req.user.name,
+      type: 'admin_rejected', postId: post._id, postTitle: post.title,
+      message: `Your post "${post.title}" was not approved by admin. Reason: ${adminComment || 'See comments.'}`,
+    });
+
+    return res.json({ success: true, message: 'Post rejected.', post });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 
 // ── GET /api/posts — list posts filtered by role ──────────────
 router.get('/', async (req, res) => {
