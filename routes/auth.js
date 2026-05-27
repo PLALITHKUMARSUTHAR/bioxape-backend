@@ -18,7 +18,10 @@ const User     = require('../models/User');
 const { generateToken, protect } = require('../middleware/authMiddleware');
 const { sendEmail }   = require('../utils/emailSender');
 const { google }      = require('googleapis');
+const { OAuth2Client } = require('google-auth-library');
 const crypto          = require('crypto');
+
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // Google OAuth2 client
 const oauth2Client = new google.auth.OAuth2(
@@ -112,8 +115,8 @@ router.post('/google', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Google credential is required.' });
     }
 
-    // Verify Google ID token using oauth2Client
-    const ticket = await oauth2Client.verifyIdToken({
+    // Verify Google ID token using google-auth-library Client
+    const ticket = await client.verifyIdToken({
       idToken: credential,
       audience: process.env.GOOGLE_CLIENT_ID
     });
