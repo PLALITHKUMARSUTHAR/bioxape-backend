@@ -104,6 +104,67 @@ router.post('/register', async (req, res) => {
   }
 });
 
+// ── POST /api/auth/google (Google One-Tap / Button Login Verification) ──
+router.post('/google', async (req, res) => {
+  try {
+    const { credential } = req.body;
+    if (!credential) {
+      return res.status(400).json({ success: false, message: 'Google credential is required.' });
+    }
+
+    // Verify Google ID token using oauth2Client
+    const ticket = await oauth2Client.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID
+    });
+    
+    const payload = ticket.getPayload();
+    const { email, name, sub: googleId, picture: photoUrl } = payload;
+
+    let user = await User.findOne({ email: email.toLowerCase() });
+
+    if (!user) {
+      // Auto-create account for Google login if it matches ADMIN_EMAIL
+      const role = email.toLowerCase() === process.env.ADMIN_EMAIL.toLowerCase()
+        ? 'admin' : 'author';
+
+      user = await User.create({
+        name,
+        email:     email.toLowerCase(),
+        googleId,
+        photoUrl:  photoUrl || '',
+        role,
+        status:    'active',
+      });
+    } else {
+      // Update Google ID if missing
+      if (!user.googleId) {
+        user.googleId = googleId;
+        if (!user.photoUrl) user.photoUrl = photoUrl || '';
+        await user.save();
+      }
+    }
+
+    if (user.status === 'suspended') {
+      return res.status(403).json({ success: false, message: 'Account suspended. Contact admin.' });
+    }
+
+    user.lastLogin = new Date();
+    await user.save();
+
+    const token = generateToken(user._id);
+
+    return res.json({
+      success: true,
+      token,
+      user: user.toPublicProfile()
+    });
+  } catch (err) {
+    console.error('Google One-Tap Login error:', err);
+    return res.status(500).json({ success: false, message: 'Google authentication failed.' });
+  }
+});
+
 // ── GET /api/auth/google ──────────────────────────────────────
 router.get('/google', (req, res) => {
   const authUrl = oauth2Client.generateAuthUrl({
