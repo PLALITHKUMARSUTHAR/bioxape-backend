@@ -16,4 +16,4 @@ const siteConfigSchema = new mongoose.Schema({
   updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 }, { timestamps: true });
 
-module.exports = mongoose.model('SiteConfig', siteConfigSchema);
+module.exports = mongoose.models.SiteConfig || mongoose.model('SiteConfig', siteConfigSchema);

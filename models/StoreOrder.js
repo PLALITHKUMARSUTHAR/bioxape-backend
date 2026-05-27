@@ -15,4 +15,4 @@ const storeOrderSchema = new mongoose.Schema({
   deliveryEmailSent: { type: Boolean, default: false }
 }, { timestamps: true });
 
-module.exports = mongoose.model('StoreOrder', storeOrderSchema);
+module.exports = mongoose.models.StoreOrder || mongoose.model('StoreOrder', storeOrderSchema);

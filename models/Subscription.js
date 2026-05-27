@@ -13,4 +13,4 @@ const subscriptionSchema = new mongoose.Schema({
   amountPaid:         { type: Number, default: 0 }
 }, { timestamps: true });
 
-module.exports = mongoose.model('Subscription', subscriptionSchema);
+module.exports = mongoose.models.Subscription || mongoose.model('Subscription', subscriptionSchema);
