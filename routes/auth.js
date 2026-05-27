@@ -161,7 +161,7 @@ router.post('/google', async (req, res) => {
     });
   } catch (err) {
     console.error('Google One-Tap Login error:', err);
-    return res.status(500).json({ success: false, message: 'Google authentication failed.' });
+    return res.status(500).json({ success: false, message: 'Google authentication failed: ' + err.message });
   }
 });
 
