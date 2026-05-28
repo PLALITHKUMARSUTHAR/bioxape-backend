@@ -6,16 +6,31 @@
 
 const nodemailer = require('nodemailer');
 
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-  connectionTimeout: 5000, // 5 seconds connection timeout
-  greetingTimeout: 5000,   // 5 seconds SMTP greeting timeout
-  socketTimeout: 5000,     // 5 seconds socket inactivity timeout
-});
+const transportConfig = process.env.EMAIL_HOST
+  ? {
+      host: process.env.EMAIL_HOST,
+      port: parseInt(process.env.EMAIL_PORT) || 2525,
+      secure: process.env.EMAIL_PORT === '465',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+      connectionTimeout: 5000,
+      greetingTimeout: 5000,
+      socketTimeout: 5000,
+    }
+  : {
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+      connectionTimeout: 5000,
+      greetingTimeout: 5000,
+      socketTimeout: 5000,
+    };
+
+const transporter = nodemailer.createTransport(transportConfig);
 
 // Verify SMTP connection on load
 transporter.verify((error, success) => {
@@ -29,7 +44,7 @@ transporter.verify((error, success) => {
 const sendEmail = async ({ to, subject, html, text }) => {
   try {
     const info = await transporter.sendMail({
-      from:    `"BioXape" <${process.env.EMAIL_USER}>`,
+      from:    `"BioXape" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
       to,
       subject,
       html,
