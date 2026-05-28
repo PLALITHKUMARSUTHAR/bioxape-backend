@@ -354,16 +354,23 @@ router.put('/:id/assign-editor', isAdmin, async (req, res) => {
     const author = await User.findById(req.params.id);
     if (!author) return res.status(404).json({ success: false, message: 'Author not found.' });
 
-    const editor = await User.findById(editorId);
-    if (!editor || editor.role !== 'editor') {
-      return res.status(400).json({ success: false, message: 'Valid editor ID required.' });
-    }
-
     // Remove from old editor
     if (author.assignedEditorId) {
       await User.findByIdAndUpdate(author.assignedEditorId, {
         $pull: { assignedAuthors: author._id }
       });
+    }
+
+    // If editorId is null, "null", or empty, we unassign the author
+    if (!editorId || editorId === 'null') {
+      author.assignedEditorId = null;
+      await author.save();
+      return res.json({ success: true, message: `${author.name} unassigned successfully.` });
+    }
+
+    const editor = await User.findById(editorId);
+    if (!editor || editor.role !== 'editor') {
+      return res.status(400).json({ success: false, message: 'Valid editor ID required.' });
     }
 
     // Assign to new editor
