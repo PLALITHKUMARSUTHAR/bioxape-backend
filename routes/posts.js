@@ -423,7 +423,7 @@ router.get('/:id', async (req, res) => {
       return res.status(403).json({ success: false, message: 'Access denied.' });
     }
 
-    return res.json({ success: true, post });
+    return res.json({ success: true, post, data: post });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }
@@ -509,6 +509,13 @@ router.post('/:id/submit', isAuthor, async (req, res) => {
     if (!['draft', 'changes_needed'].includes(post.status)) {
       return res.status(400).json({ success: false, message: 'Only drafts or posts needing changes can be submitted.' });
     }
+
+    // Update draft with any new modifications sent in the submit body (e.g. newly uploaded docx, category, title, excerpt)
+    const allowed = ['title', 'excerpt', 'bodyHtml', 'docxFileUrl', 'docxPublicId', 'coverImageUrl', 'coverPublicId', 'category', 'allCategories', 'contentType', 'tags', 'editorNote'];
+    allowed.forEach(field => {
+      if (req.body[field] !== undefined) post[field] = req.body[field];
+    });
+    await post.save();
 
     if (!post.title || !post.excerpt || !post.category) {
       return res.status(400).json({ success: false, message: 'Please fill in Title, Excerpt, and Category before submitting.' });
@@ -732,7 +739,7 @@ router.put('/:id/feature', isAdmin, async (req, res) => {
     if (isTrending       !== undefined) post.isTrending        = isTrending;
 
     await post.save();
-    return res.json({ success: true, post });
+    return res.json({ success: true, post, data: post });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }
