@@ -20,6 +20,7 @@ const { sendEmail }   = require('../utils/emailSender');
 const { google }      = require('googleapis');
 const { OAuth2Client } = require('google-auth-library');
 const crypto          = require('crypto');
+const { uploadPhoto } = require('../config/cloudinary');
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -317,6 +318,37 @@ router.post('/reset-password', async (req, res) => {
   } catch (err) {
     console.error('Reset password error:', err);
     return res.status(500).json({ success: false, message: 'Server error.' });
+  }
+});
+
+// ── PUT /api/auth/update-profile ─────────────────────────────
+// Updates user details and profile picture (Cloudinary integration)
+router.put('/update-profile', protect, uploadPhoto.single('photo'), async (req, res) => {
+  try {
+    const { name, phone, bio, twitter, linkedin, researchgate } = req.body;
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+
+    if (name) user.name = name;
+    if (phone !== undefined) user.phone = phone;
+    if (bio !== undefined) user.bio = bio;
+
+    // Update social links
+    if (!user.socialLinks) user.socialLinks = {};
+    if (twitter !== undefined) user.socialLinks.twitter = twitter;
+    if (linkedin !== undefined) user.socialLinks.linkedin = linkedin;
+    if (researchgate !== undefined) user.socialLinks.researchgate = researchgate;
+
+    // Handle Cloudinary profile photo upload
+    if (req.file) {
+      user.photoUrl = req.file.path;
+    }
+
+    await user.save();
+    return res.json({ success: true, user: user.toPublicProfile() });
+  } catch (err) {
+    console.error('Update profile error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to update profile: ' + err.message });
   }
 });
 

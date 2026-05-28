@@ -16,7 +16,7 @@ const { uploadDocx, uploadCover, uploadPhoto, cloudinary } = require('../config/
 router.use(protect);
 
 // ── POST /api/upload/docx ────────────────────────────────────
-router.post('/docx', uploadDocx.single('file'), async (req, res) => {
+router.post('/docx', uploadDocx.single('docx'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded.' });
     return res.json({
@@ -31,7 +31,7 @@ router.post('/docx', uploadDocx.single('file'), async (req, res) => {
 });
 
 // ── POST /api/upload/cover ───────────────────────────────────
-router.post('/cover', uploadCover.single('file'), async (req, res) => {
+router.post('/cover', uploadCover.single('cover'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded.' });
     return res.json({
