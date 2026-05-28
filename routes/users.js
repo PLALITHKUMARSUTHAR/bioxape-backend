@@ -95,23 +95,34 @@ router.post('/invite', isAdmin, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Role must be editor or author.' });
     }
 
-    // Check if user already exists
-    const existing = await User.findOne({ email: email.toLowerCase() });
-    if (existing) {
-      return res.status(400).json({ success: false, message: 'A user with this email already exists.' });
-    }
-
     const inviteToken   = crypto.randomBytes(32).toString('hex');
     const inviteExpires = new Date(Date.now() + 48 * 60 * 60 * 1000);  // 48 hours
 
-    const newUser = await User.create({
-      name:         name || email.split('@')[0],
-      email:        email.toLowerCase(),
-      role,
-      status:       'pending',
-      inviteToken,
-      inviteExpires,
-    });
+    // Check if user already exists
+    let user = await User.findOne({ email: email.toLowerCase() });
+    let isNewUser = false;
+
+    if (user) {
+      if (user.status !== 'pending') {
+        return res.status(400).json({ success: false, message: 'A user with this email already exists and is active/suspended.' });
+      }
+      // If user exists but is pending, update their details to resend the invitation
+      user.name = name || user.name;
+      user.role = role;
+      user.inviteToken = inviteToken;
+      user.inviteExpires = inviteExpires;
+      await user.save();
+    } else {
+      user = await User.create({
+        name:         name || email.split('@')[0],
+        email:        email.toLowerCase(),
+        role,
+        status:       'pending',
+        inviteToken,
+        inviteExpires,
+      });
+      isNewUser = true;
+    }
 
     const inviteUrl = `${process.env.FRONTEND_URL}/register.html?token=${inviteToken}&email=${email}`;
 
@@ -137,7 +148,9 @@ router.post('/invite', isAdmin, async (req, res) => {
     });
 
     if (!emailResult.success) {
-      await User.findByIdAndDelete(newUser._id);
+      if (isNewUser) {
+        await User.findByIdAndDelete(user._id);
+      }
       return res.status(500).json({ success: false, message: `Failed to send invitation email: ${emailResult.error}` });
     }
 
@@ -152,7 +165,7 @@ router.post('/invite', isAdmin, async (req, res) => {
     return res.json({
       success: true,
       message: `Invite sent to ${email}.`,
-      userId:  newUser._id
+      userId:  user._id
     });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
