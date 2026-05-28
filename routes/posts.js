@@ -165,7 +165,7 @@ router.post('/submit', isAuthor, async (req, res) => {
       }
     }
 
-    return res.status(201).json({ success: true, post });
+    return res.status(201).json({ success: true, post, data: post });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }
@@ -434,8 +434,8 @@ router.post('/', isAuthor, async (req, res) => {
   try {
     const { title, excerpt, category, allCategories, contentType, tags, bodyHtml, docxFileUrl, docxPublicId, coverImageUrl, coverPublicId } = req.body;
 
-    if (!title || !excerpt || !category) {
-      return res.status(400).json({ success: false, message: 'Title, excerpt and category are required.' });
+    if (!title) {
+      return res.status(400).json({ success: false, message: 'Title is required to save draft.' });
     }
 
     // Auto-assign editor
@@ -464,7 +464,7 @@ router.post('/', isAuthor, async (req, res) => {
       status: 'draft',
     });
 
-    return res.status(201).json({ success: true, post });
+    return res.status(201).json({ success: true, post, data: post });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }
@@ -490,7 +490,7 @@ router.put('/:id', isAuthor, async (req, res) => {
     });
 
     await post.save();
-    return res.json({ success: true, post });
+    return res.json({ success: true, post, data: post });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }
@@ -508,6 +508,10 @@ router.post('/:id/submit', isAuthor, async (req, res) => {
 
     if (!['draft', 'changes_needed'].includes(post.status)) {
       return res.status(400).json({ success: false, message: 'Only drafts or posts needing changes can be submitted.' });
+    }
+
+    if (!post.title || !post.excerpt || !post.category) {
+      return res.status(400).json({ success: false, message: 'Please fill in Title, Excerpt, and Category before submitting.' });
     }
 
     if (!post.docxFileUrl) {
@@ -549,7 +553,7 @@ router.post('/:id/submit', isAuthor, async (req, res) => {
       await post.save();
     }
 
-    return res.json({ success: true, message: 'Post submitted for review.', post });
+    return res.json({ success: true, message: 'Post submitted for review.', post, data: post });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }

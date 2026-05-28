@@ -21,6 +21,7 @@ router.post('/docx', uploadDocx.single('docx'), async (req, res) => {
     if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded.' });
     return res.json({
       success:   true,
+      url:       req.file.path,
       fileUrl:   req.file.path,
       publicId:  req.file.filename,
       fileName:  req.file.originalname,
@@ -36,6 +37,7 @@ router.post('/cover', uploadCover.single('cover'), async (req, res) => {
     if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded.' });
     return res.json({
       success:  true,
+      url:      req.file.path,
       imageUrl: req.file.path,
       publicId: req.file.filename,
     });
@@ -50,6 +52,7 @@ router.post('/photo', uploadPhoto.single('file'), async (req, res) => {
     if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded.' });
     return res.json({
       success:  true,
+      url:      req.file.path,
       imageUrl: req.file.path,
       publicId: req.file.filename,
     });

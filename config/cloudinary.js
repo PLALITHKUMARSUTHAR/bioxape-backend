@@ -19,7 +19,6 @@ const docxStorage = new CloudinaryStorage({
   params: async (req, file) => ({
     folder:        'bioxape/posts/docx',
     resource_type: 'raw',
-    allowed_formats: ['docx', 'doc'],
     public_id:     `post_${Date.now()}_${file.originalname.replace(/\s+/g, '_')}`,
   }),
 });

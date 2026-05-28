@@ -18,10 +18,23 @@ const express  = require('express');
 const router   = express.Router();
 const crypto   = require('crypto');
 const User     = require('../models/User');
-const { protect, isAdmin } = require('../middleware/authMiddleware');
+const { protect, isAdmin, isEditor } = require('../middleware/authMiddleware');
 const { sendEmail }        = require('../utils/emailSender');
 const { sendWhatsApp }     = require('../utils/whatsappSender');
 const { Notification }     = require('../models/index');
+
+// ── GET /api/users/authors-public ───────────────────────────
+// Public - no auth required - lists active authors for public website
+router.get('/authors-public', async (req, res) => {
+  try {
+    const authors = await User.find({ role: 'author', status: 'active' })
+      .select('name bio photoUrl expertise socialLinks postsPublished totalReads')
+      .sort({ postsPublished: -1 });
+    return res.json({ success: true, data: authors });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
 
 // All users routes require login
 router.use(protect);
@@ -45,6 +58,60 @@ router.get('/', isAdmin, async (req, res) => {
       .sort({ createdAt: -1 });
 
     return res.json({ success: true, count: users.length, users });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── GET /api/users/all — list all users (dashboard admin) ────
+router.get('/all', isAdmin, async (req, res) => {
+  try {
+    const users = await User.find({})
+      .select('-passwordHash -googleId -inviteToken -passwordResetToken')
+      .populate('assignedEditorId', 'name email')
+      .populate('assignedAuthors', 'name email')
+      .sort({ createdAt: -1 });
+    return res.json({ success: true, data: users });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── GET /api/users/editors — list editors for assignments ──────
+router.get('/editors', isAdmin, async (req, res) => {
+  try {
+    const editors = await User.find({ role: 'editor' })
+      .select('name email photoUrl assignedAuthors postsPublished')
+      .populate('assignedAuthors', 'name email');
+    return res.json({ success: true, data: editors });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── GET /api/users/authors — list authors for assignments ──────
+router.get('/authors', isAdmin, async (req, res) => {
+  try {
+    const authors = await User.find({ role: 'author' })
+      .select('name email photoUrl assignedEditorId postsPublished expertise')
+      .populate('assignedEditorId', 'name email');
+    return res.json({ success: true, data: authors });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── GET /api/users/my-authors — list editor's assigned authors ──
+router.get('/my-authors', isEditor, async (req, res) => {
+  try {
+    const filter = { role: 'author' };
+    if (req.user.role !== 'admin') {
+      filter.assignedEditorId = req.user._id;
+    }
+    const authors = await User.find(filter)
+      .select('name email photoUrl postsPublished expertise')
+      .sort({ name: 1 });
+    return res.json({ success: true, data: authors });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }

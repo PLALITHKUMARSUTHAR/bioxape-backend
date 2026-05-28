@@ -19,7 +19,7 @@ const postSchema = new mongoose.Schema({
     type: String, required: true, trim: true, maxlength: 300
   },
   excerpt: {
-    type: String, required: true, trim: true, maxlength: 500
+    type: String, default: '', trim: true, maxlength: 500
   },
   bodyHtml: {
     type: String, default: ''   // converted from .docx by Mammoth on backend
@@ -41,7 +41,7 @@ const postSchema = new mongoose.Schema({
 
   // Categorisation
   category: {
-    type: String, required: true, trim: true   // primary Blogger label
+    type: String, default: '', trim: true   // primary Blogger label
   },
   allCategories: {
     type: [String], default: []   // all Blogger labels
