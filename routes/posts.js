@@ -760,6 +760,28 @@ router.delete('/:id', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Only draft or rejected posts can be deleted.' });
     }
 
+    const reason = req.body?.reason || req.query?.reason || '';
+    if (reason && req.user.role === 'admin') {
+      await notifyUser(post.authorId, {
+        fromUserId: req.user._id,
+        fromName:   req.user.name,
+        type:       'admin_rejected',
+        postId:     null,
+        postTitle:  post.title,
+        message:    `Your post "${post.title}" was removed by the administrator. Reason: ${reason}`,
+      });
+      if (post.editorId) {
+        await notifyUser(post.editorId, {
+          fromUserId: req.user._id,
+          fromName:   req.user.name,
+          type:       'general',
+          postId:     null,
+          postTitle:  post.title,
+          message:    `The post "${post.title}" assigned to you was removed by the administrator. Reason: ${reason}`,
+        });
+      }
+    }
+
     await Post.findByIdAndDelete(req.params.id);
     return res.json({ success: true, message: 'Post deleted.' });
   } catch (err) {
