@@ -15,10 +15,10 @@ const app = express();
 app.use(helmet());
 app.use(morgan('dev'));
 
-// Rate limiting — 100 requests per 15 minutes per IP
+// Rate limiting — 2000 requests per 15 minutes per IP (relaxed for active developer testing and multi-dashboard polling)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 2000,
   message: { success: false, message: 'Too many requests, please try again later.' }
 });
 app.use('/api/', limiter);
