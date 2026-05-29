@@ -124,7 +124,7 @@ module.exports = {
 
   store: {
     items: [
-      { emoji: "📓", themeClass: "si1", name: "BioXape Lab Notebook", type: "Hardcover · Branded Merch",     price: "₹499",   oldPrice: "",       cartUrl: "#" },
+      { emoji: "📓", themeClass: "si1", name: "BioXApe Lab Notebook", type: "Hardcover · Branded Merch",     price: "₹499",   oldPrice: "",       cartUrl: "#" },
       { emoji: "🖼️", themeClass: "si2", name: "PCR Protocol Poster Set", type: "Digital Download · A2 Print", price: "₹249",   oldPrice: "₹399",   cartUrl: "#" },
       { emoji: "👕", themeClass: "si3", name: "DNA Helix Tee",           type: "Unisex Merch · S to 3XL",     price: "₹849",   oldPrice: "",       cartUrl: "#" },
       { emoji: "📦", themeClass: "si4", name: "Researcher Starter Bundle", type: "Bundle · 4 eBooks + Poster", price: "₹1,399", oldPrice: "₹2,400", cartUrl: "#" }
@@ -133,7 +133,7 @@ module.exports = {
 
   footer: {
     socialLinks: { twitter: "#", linkedin: "#", youtube: "#", instagram: "#", researchgate: "#" },
-    copyrightText: "2026 BioXape. All rights reserved. Made with dedication in India.",
+    copyrightText: "2026 BioXApe. All rights reserved. Made with dedication in India.",
     newsletterHeading: "Weekly Science Digest",
     newsletterSubtext: "Top biotech stories every week."
   },
@@ -146,7 +146,7 @@ module.exports = {
   },
 
   site_meta: {
-    siteName:    "BioXape",
+    siteName:    "BioXApe",
     tagline:     "Where Biotechnology Meets Clarity",
     description: "Your trusted source for biotechnology insights, peer-reviewed research summaries, and science communication.",
     keywords:    "biotechnology, CRISPR, genomics, bioinformatics, synthetic biology, biotech news India",

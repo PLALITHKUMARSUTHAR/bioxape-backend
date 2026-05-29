@@ -195,15 +195,15 @@ router.post('/invite', isAdmin, async (req, res) => {
 
     const emailResult = await sendEmail({
       to:      email,
-      subject: `You are invited to join BioXape as ${role.charAt(0).toUpperCase() + role.slice(1)}`,
+      subject: `You are invited to join BioXApe as ${role.charAt(0).toUpperCase() + role.slice(1)}`,
       html: `
         <div style="font-family:Inter,sans-serif;max-width:600px;margin:0 auto">
           <div style="background:#27a363;padding:24px;border-radius:12px 12px 0 0;text-align:center">
-            <h1 style="color:white;margin:0;font-size:24px">Welcome to BioXape</h1>
+            <h1 style="color:white;margin:0;font-size:24px">Welcome to BioXApe</h1>
           </div>
           <div style="background:#f8faf9;padding:28px;border-radius:0 0 12px 12px;border:1px solid #e0ece5">
             <p style="color:#2d4a38">Hi ${name || 'there'},</p>
-            <p style="color:#4a7060">You have been invited to join <strong>BioXape</strong> as a <strong>${role}</strong>.</p>
+            <p style="color:#4a7060">You have been invited to join <strong>BioXApe</strong> as a <strong>${role}</strong>.</p>
             <p style="color:#4a7060">Click the button below to set up your account. This link expires in 48 hours.</p>
             <div style="text-align:center;margin:28px 0">
               <a href="${inviteUrl}" style="background:#27a363;color:white;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:16px">Accept Invitation</a>
@@ -224,7 +224,7 @@ router.post('/invite', isAdmin, async (req, res) => {
     // In-app notification to admin confirming invite sent
     await Notification.create({
       toUserId:  req.user._id,
-      fromName:  'BioXape System',
+      fromName:  'BioXApe System',
       type:      'invite_sent',
       message:   `Invite sent to ${email} as ${role}.`,
     });
@@ -312,8 +312,8 @@ router.put('/:id/role', isAdmin, async (req, res) => {
 
     await sendEmail({
       to:      user.email,
-      subject: 'BioXape — Your Role Has Been Updated',
-      html:    `<p>Hi ${user.name}, your role on BioXape has been updated to <strong>${role}</strong>.</p>`
+      subject: 'BioXApe — Your Role Has Been Updated',
+      html:    `<p>Hi ${user.name}, your role on BioXApe has been updated to <strong>${role}</strong>.</p>`
     });
 
     return res.json({ success: true, message: `Role updated to ${role}.`, user });
@@ -337,8 +337,8 @@ router.put('/:id/status', isAdmin, async (req, res) => {
 
     await sendEmail({
       to:      user.email,
-      subject: `BioXape — Your account has been ${status}`,
-      html:    `<p>Hi ${user.name}, your BioXape account has been ${status}. Contact admin if you have questions.</p>`
+      subject: `BioXApe — Your account has been ${status}`,
+      html:    `<p>Hi ${user.name}, your BioXApe account has been ${status}. Contact admin if you have questions.</p>`
     });
 
     return res.json({ success: true, message: `User ${status}.`, user });

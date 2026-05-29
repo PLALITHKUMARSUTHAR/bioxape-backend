@@ -65,7 +65,7 @@ router.post('/verify-payment', async (req, res) => {
     if (order && !order.deliveryEmailSent) {
       await sendEmail({
         to: order.buyerEmail,
-        subject: `Your BioXape order — ${order.product}`,
+        subject: `Your BioXApe order — ${order.product}`,
         html: `<h2>Thank you for your purchase!</h2>
                <p>Hi ${order.buyerName}, your order for <strong>${order.product}</strong> is confirmed.</p>
                ${deliveryUrl ? `<p><a href="${deliveryUrl}">Click here to download your product</a></p>` : '<p>Your physical item will be shipped within 3-5 business days.</p>'}

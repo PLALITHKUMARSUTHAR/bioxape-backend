@@ -274,7 +274,7 @@ router.post('/forgot-password', async (req, res) => {
 
     await sendEmail({
       to:      user.email,
-      subject: 'BioXape — Reset Your Password',
+      subject: 'BioXApe — Reset Your Password',
       html: `
         <h2>Password Reset Request</h2>
         <p>Hi ${user.name},</p>

@@ -1,5 +1,5 @@
 // ================================================================
-//  BioXape — Notification Model
+//  BioXApe — Notification Model
 //  FILE: models/Notification.js
 // ================================================================
 
@@ -8,7 +8,7 @@ const mongoose = require('mongoose');
 const notificationSchema = new mongoose.Schema({
   toUserId:   { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   fromUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
-  fromName:   { type: String, default: 'BioXape System' },
+  fromName:   { type: String, default: 'BioXApe System' },
   type: {
     type: String,
     enum: [

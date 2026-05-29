@@ -44,7 +44,7 @@ transporter.verify((error, success) => {
 const sendEmail = async ({ to, subject, html, text }) => {
   try {
     const info = await transporter.sendMail({
-      from:    `"BioXape" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
+      from:    `"BioXApe" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
       to,
       subject,
       html,

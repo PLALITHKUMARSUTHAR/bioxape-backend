@@ -70,7 +70,7 @@ app.use('/api/store',     require('./routes/store'));
 app.get('/', (req, res) => {
   res.json({
     success: true,
-    message: 'BioXape API is running',
+    message: 'BioXApe API is running',
     version: '1.0.0',
     timestamp: new Date().toISOString()
   });
@@ -117,7 +117,7 @@ seedDefaults();
 // ── Start Server ─────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`🚀 BioXape API running on port ${PORT}`);
+  console.log(`🚀 BioXApe API running on port ${PORT}`);
   console.log(`   Environment: ${process.env.NODE_ENV}`);
   console.log(`   Frontend: ${process.env.FRONTEND_URL}`);
 });

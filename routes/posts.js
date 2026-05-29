@@ -38,7 +38,7 @@ async function notifyUser(userId, payload) {
     if (user.notifPrefs.email && user.email) {
       await sendEmail({
         to:      user.email,
-        subject: `BioXape — ${payload.message}`,
+        subject: `BioXApe — ${payload.message}`,
         html:    `<p>Hi ${user.name},</p><p>${payload.message}</p>${payload.postTitle ? `<p><strong>Post:</strong> ${payload.postTitle}</p>` : ''}<p><a href="${process.env.FRONTEND_URL}">Open Dashboard</a></p>`
       });
     }
@@ -47,7 +47,7 @@ async function notifyUser(userId, payload) {
     if (user.notifPrefs.whatsapp && user.phone) {
       await sendWhatsApp({
         phone:   user.phone,
-        message: `BioXape: ${payload.message}${payload.postTitle ? ' | Post: ' + payload.postTitle : ''}`
+        message: `BioXApe: ${payload.message}${payload.postTitle ? ' | Post: ' + payload.postTitle : ''}`
       });
     }
   } catch (err) {
@@ -349,7 +349,7 @@ router.put('/:id/admin-approve', isAdmin, async (req, res) => {
     await notifyUser(post.authorId, {
       fromUserId: req.user._id, fromName: req.user.name,
       type: 'post_published', postId: post._id, postTitle: post.title,
-      message: `🎉 Your post "${post.title}" has been approved and published on BioXape!${post.bloggerPostUrl ? ' View it at: ' + post.bloggerPostUrl : ''}`,
+      message: `🎉 Your post "${post.title}" has been approved and published on BioXApe!${post.bloggerPostUrl ? ' View it at: ' + post.bloggerPostUrl : ''}`,
     });
 
     // Notify editor
@@ -709,7 +709,7 @@ router.put('/:id/decision', isAdmin, async (req, res) => {
       await notifyUser(post.authorId, {
         fromUserId: req.user._id, fromName: req.user.name,
         type: 'post_published', postId: post._id, postTitle: post.title,
-        message: `🎉 Your post "${post.title}" has been approved and published on BioXape!${post.bloggerPostUrl ? ' View it at: ' + post.bloggerPostUrl : ''}`,
+        message: `🎉 Your post "${post.title}" has been approved and published on BioXApe!${post.bloggerPostUrl ? ' View it at: ' + post.bloggerPostUrl : ''}`,
       });
 
       // Notify editor
