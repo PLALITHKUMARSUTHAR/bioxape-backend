@@ -179,8 +179,19 @@ router.get('/editor-queue', isEditor, async (req, res) => {
     if (req.user.role !== 'admin') {
       filter.editorId = req.user._id;
     }
-    const posts = await Post.find(filter).sort({ updatedAt: -1 });
-    return res.json({ success: true, data: posts });
+    const posts = await Post.find(filter)
+      .populate('authorId', 'role')
+      .sort({ updatedAt: -1 });
+
+    // Sort in-memory: editor posts first, then by updatedAt desc
+    const sorted = [...posts].sort((a, b) => {
+      const aRole = (a.authorId && a.authorId.role === 'editor') ? 1 : 0;
+      const bRole = (b.authorId && b.authorId.role === 'editor') ? 1 : 0;
+      if (aRole !== bRole) return bRole - aRole;
+      return new Date(b.updatedAt) - new Date(a.updatedAt);
+    });
+
+    return res.json({ success: true, data: sorted });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }
@@ -256,8 +267,19 @@ router.put('/:id/editor-review', isEditor, async (req, res) => {
 // Returns all posts for the admin review queue and dashboard stats
 router.get('/admin-queue', isAdmin, async (req, res) => {
   try {
-    const posts = await Post.find({}).sort({ updatedAt: -1 });
-    return res.json({ success: true, data: posts });
+    const posts = await Post.find({})
+      .populate('authorId', 'role')
+      .sort({ updatedAt: -1 });
+
+    // Sort in-memory: editor posts first, then by updatedAt desc
+    const sorted = [...posts].sort((a, b) => {
+      const aRole = (a.authorId && a.authorId.role === 'editor') ? 1 : 0;
+      const bRole = (b.authorId && b.authorId.role === 'editor') ? 1 : 0;
+      if (aRole !== bRole) return bRole - aRole;
+      return new Date(b.updatedAt) - new Date(a.updatedAt);
+    });
+
+    return res.json({ success: true, data: sorted });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }
