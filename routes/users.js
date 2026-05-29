@@ -92,8 +92,8 @@ router.get('/editors', isAdmin, async (req, res) => {
 // ── GET /api/users/authors — list authors for assignments ──────
 router.get('/authors', isAdmin, async (req, res) => {
   try {
-    const authors = await User.find({ role: 'author' })
-      .select('name email photoUrl assignedEditorId postsPublished expertise')
+    const authors = await User.find({ role: { $in: ['author', 'editor'] } })
+      .select('name email photoUrl assignedEditorId postsPublished expertise role')
       .populate('assignedEditorId', 'name email');
     return res.json({ success: true, data: authors });
   } catch (err) {
