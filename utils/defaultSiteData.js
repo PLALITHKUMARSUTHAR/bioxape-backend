@@ -137,6 +137,12 @@ module.exports = {
     newsletterHeading: "Weekly Science Digest",
     newsletterSubtext: "Top biotech stories every week."
   },
+  
+  latest_articles: {
+    title: "Latest Articles",
+    limit: 6,
+    showCoverImage: true
+  },
 
   adsense_slots: {
     leaderboard1:    { code: "", active: false },

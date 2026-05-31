@@ -21,7 +21,6 @@ const { protect, isAdmin, isEditor, isAuthor } = require('../middleware/authMidd
 const { Notification } = require('../models/index');
 const { sendEmail }    = require('../utils/emailSender');
 const { sendWhatsApp } = require('../utils/whatsappSender');
-const { publishToBlogger } = require('../utils/bloggerPublisher');
 
 // ── Helper: send all 3 notification types ────────────────────
 async function notifyUser(userId, payload) {
@@ -60,7 +59,7 @@ async function notifyUser(userId, payload) {
 router.get('/public/feed', async (req, res) => {
   try {
     const { category, limit = 10, page = 1 } = req.query;
-    const filter = { status: 'published' };
+    const filter = { status: { $in: ['published', 'approved'] } };
     if (category) filter.category = category;
 
     const posts = await Post.find(filter)
@@ -71,6 +70,26 @@ router.get('/public/feed', async (req, res) => {
 
     const total = await Post.countDocuments(filter);
     return res.json({ success: true, total, page: parseInt(page), posts });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── GET /api/posts/public/:id ──────────────────────────────────
+// Public — no auth — get single post by ID for standalone reader
+router.get('/public/:id', async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ success: false, message: 'Post not found.' });
+    if (!['published', 'approved'].includes(post.status)) {
+      return res.status(403).json({ success: false, message: 'Access denied.' });
+    }
+    
+    // Increment view count
+    post.viewCount = (post.viewCount || 0) + 1;
+    await post.save();
+    
+    return res.json({ success: true, post });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }
@@ -322,26 +341,17 @@ router.put('/:id/admin-approve', isAdmin, async (req, res) => {
       byId: req.user._id, byName: req.user.name, byRole: 'admin'
     });
 
-    // Publish to Blogger
-    try {
-      const result = await publishToBlogger(post);
-      if (result.success) {
-        post.bloggerPostId  = result.postId;
-        post.bloggerPostUrl = result.postUrl;
-        post.status         = 'published';
-        post.revisionHistory.push({
-          status: 'published', comment: 'Auto-published to Blogger.',
-          byId: req.user._id, byName: req.user.name, byRole: 'admin'
-        });
+    // Native Local Publishing (Bypassing Blogger completely)
+    post.bloggerPostId  = `local-${post._id}`;
+    post.bloggerPostUrl = `/post.html?id=${post._id}`;
+    post.status         = 'published';
+    post.revisionHistory.push({
+      status: 'published', comment: 'Published directly to local standalone site.',
+      byId: req.user._id, byName: req.user.name, byRole: 'admin'
+    });
 
-        // Update author stats
-        await User.findByIdAndUpdate(post.authorId, { $inc: { postsPublished: 1 } });
-      }
-    } catch (bloggerErr) {
-      console.error('Blogger publish error:', bloggerErr.message);
-      // Fallback to approved
-      post.status = 'approved';
-    }
+    // Update author stats
+    await User.findByIdAndUpdate(post.authorId, { $inc: { postsPublished: 1 } });
 
     await post.save();
 
@@ -394,6 +404,47 @@ router.put('/:id/admin-reject', isAdmin, async (req, res) => {
     });
 
     return res.json({ success: true, message: 'Post rejected.', post });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── PUT /api/posts/:id/admin-request-changes ───────────────────
+// Admin requests changes from the author
+router.put('/:id/admin-request-changes', isAdmin, async (req, res) => {
+  try {
+    const { adminComment } = req.body;
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ success: false, message: 'Post not found.' });
+
+    post.status          = 'changes_needed';
+    post.adminComment    = adminComment || '';
+    post.adminReviewedAt = new Date();
+
+    post.revisionHistory.push({
+      status: 'changes_needed', comment: adminComment || 'Changes requested by admin.',
+      byId: req.user._id, byName: req.user.name, byRole: 'admin'
+    });
+
+    await post.save();
+
+    // Notify author
+    await notifyUser(post.authorId, {
+      fromUserId: req.user._id, fromName: req.user.name,
+      type: 'changes_requested', postId: post._id, postTitle: post.title,
+      message: `Changes requested by admin for "${post.title}": ${adminComment || 'See admin comments.'}`,
+    });
+
+    // Notify editor (if assigned)
+    if (post.editorId) {
+      await notifyUser(post.editorId, {
+        fromUserId: req.user._id, fromName: req.user.name,
+        type: 'general', postId: post._id, postTitle: post.title,
+        message: `Admin requested changes for "${post.title}".`,
+      });
+    }
+
+    return res.json({ success: true, message: 'Changes requested successfully.', post });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }
@@ -681,27 +732,17 @@ router.put('/:id/decision', isAdmin, async (req, res) => {
         byId: req.user._id, byName: req.user.name, byRole: 'admin'
       });
 
-      // Publish to Blogger
-      try {
-        const result = await publishToBlogger(post);
-        if (result.success) {
-          post.bloggerPostId  = result.postId;
-          post.bloggerPostUrl = result.postUrl;
-          post.status         = 'published';
-          post.revisionHistory.push({
-            status: 'published', comment: 'Auto-published to Blogger.',
-            byId: req.user._id, byName: req.user.name, byRole: 'admin'
-          });
+      // Native Local Publishing (Bypassing Blogger completely)
+      post.bloggerPostId  = `local-${post._id}`;
+      post.bloggerPostUrl = `/post.html?id=${post._id}`;
+      post.status         = 'published';
+      post.revisionHistory.push({
+        status: 'published', comment: 'Published directly to local standalone site.',
+        byId: req.user._id, byName: req.user.name, byRole: 'admin'
+      });
 
-          // Update author stats
-          await User.findByIdAndUpdate(post.authorId, { $inc: { postsPublished: 1 } });
-
-        }
-      } catch (bloggerErr) {
-        console.error('Blogger publish error:', bloggerErr.message);
-        // Don't fail — mark as approved, admin can manually publish
-        post.status = 'approved';
-      }
+      // Update author stats
+      await User.findByIdAndUpdate(post.authorId, { $inc: { postsPublished: 1 } });
 
       await post.save();
 

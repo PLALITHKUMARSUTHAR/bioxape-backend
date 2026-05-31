@@ -100,14 +100,15 @@ const defaultSiteData = require('./utils/defaultSiteData');
 
 const seedDefaults = async () => {
   try {
-    const count = await SiteConfig.countDocuments();
-    if (count === 0) {
-      console.log('🌱 Seeding default site configuration...');
-      for (const [section, data] of Object.entries(defaultSiteData)) {
+    console.log('🌱 Checking site configuration sections...');
+    for (const [section, data] of Object.entries(defaultSiteData)) {
+      const exists = await SiteConfig.findOne({ section });
+      if (!exists) {
+        console.log(`🌱 Seeding missing section: ${section}...`);
         await SiteConfig.create({ section, data });
       }
-      console.log('✅ Default site config seeded successfully');
     }
+    console.log('✅ Site config checks complete');
   } catch (err) {
     console.error('Seed error:', err.message);
   }
