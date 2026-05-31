@@ -60,7 +60,12 @@ router.get('/public/feed', async (req, res) => {
   try {
     const { category, limit = 10, page = 1 } = req.query;
     const filter = { status: { $in: ['published', 'approved'] } };
-    if (category) filter.category = category;
+    if (category) {
+      filter.$or = [
+        { category: category },
+        { allCategories: category }
+      ];
+    }
 
     const posts = await Post.find(filter)
       .select('title excerpt coverImageUrl category allCategories contentType tags authorName readTimeMinutes viewCount publishedAt bloggerPostUrl isFeatured isTrending')
