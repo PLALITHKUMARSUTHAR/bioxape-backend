@@ -18,7 +18,7 @@ const router   = express.Router();
 const Post     = require('../models/Post');
 const User     = require('../models/User');
 const { protect, isAdmin, isEditor, isAuthor } = require('../middleware/authMiddleware');
-const { Notification } = require('../models/index');
+const { Notification, Category, SiteConfig } = require('../models/index');
 const { sendEmail }    = require('../utils/emailSender');
 const { sendWhatsApp } = require('../utils/whatsappSender');
 
@@ -54,16 +54,109 @@ async function notifyUser(userId, payload) {
   }
 }
 
+const CATEGORY_MAP = {
+  "Genomics & Gene Editing": [
+    "genomics & gene editing", "genomics", "gene editing", "crispr", "sequencing", 
+    "dna", "rna", "crispr-cas9", "genetic engineering", "base editing", "prime editing", "base-editing"
+  ],
+  "Biopharmaceuticals": [
+    "biopharmaceuticals & drug discovery", "biopharmaceuticals", "drug discovery", 
+    "biopharma", "vaccines", "therapeutics", "car-t", "monoclonal antibodies", "pharmacology", "medicine"
+  ],
+  "Bioinformatics": [
+    "bioinformatics", "computational biology", "data analysis", "genomics data", 
+    "biostats", "sequence alignment", "databases", "molecular modeling", "python biology"
+  ],
+  "Synthetic Biology": [
+    "synthetic biology & protein engineering", "synthetic biology", "protein engineering", 
+    "enzyme design", "artificial cells", "genetic circuits", "metabolic engineering", "alphafold", "de novo design"
+  ],
+  "Industrial Biotechnology": [
+    "industrial biotechnology", "industrial biotech", "biofuels", "fermentation", 
+    "bioplastics", "bioreactors", "enzymes", "bioprocessing", "industrial enzymes"
+  ],
+  "Agricultural Biotechnology": [
+    "agricultural biotechnology", "agricultural biotech", "agritech", "gm crops", 
+    "plant genetics", "pest resistance", "crop yield", "crispr plants", "biofertilizers"
+  ],
+  "Clinical Trials & Industry News": [
+    "clinical trials & industry news", "clinical trials", "industry news", "fda approval", 
+    "biotech business", "market trends", "funding", "patents", "biotech policy"
+  ]
+};
+
+function resolveCategoryQuery(query) {
+  if (!query) return null;
+  const q = query.toLowerCase().trim();
+  for (const [category, synonyms] of Object.entries(CATEGORY_MAP)) {
+    if (synonyms.some(syn => q.includes(syn) || syn.includes(q))) {
+      return category;
+    }
+  }
+  return null;
+}
+
 // ── GET /api/posts/public/feed ────────────────────────────────
 // Public — no auth — used by Blogger template to fetch posts
 router.get('/public/feed', async (req, res) => {
   try {
-    const { category, limit = 10, page = 1 } = req.query;
+    const { category, search, q, limit = 10, page = 1 } = req.query;
     const filter = { status: { $in: ['published', 'approved'] } };
-    if (category) {
+    
+    const searchQuery = (search || q || '').trim();
+
+    if (searchQuery) {
+      // Resolve alternative words to category first
+      const resolvedCategory = resolveCategoryQuery(searchQuery);
+      if (resolvedCategory) {
+        // Find by category terms
+        const catDoc = await Category.findOne({ displayName: resolvedCategory });
+        const categoryTerms = [resolvedCategory];
+        if (catDoc) {
+          if (catDoc.displayName) categoryTerms.push(catDoc.displayName);
+          if (catDoc.bloggerLabel) categoryTerms.push(catDoc.bloggerLabel);
+        }
+        filter.$or = [
+          { category: { $in: categoryTerms } },
+          { allCategories: { $in: categoryTerms } }
+        ];
+      } else {
+        // Normal text query search across title, excerpt, and tags
+        filter.$or = [
+          { title: { $regex: searchQuery, $options: 'i' } },
+          { excerpt: { $regex: searchQuery, $options: 'i' } },
+          { tags: { $in: [new RegExp(searchQuery, 'i')] } }
+        ];
+      }
+    } else if (category) {
+      // Resolve category to support mappings (e.g. bloggerLabel "CRISPR" <-> displayName "CRISPR & Gene Editing")
+      const catDoc = await Category.findOne({
+        $or: [
+          { bloggerLabel: category },
+          { displayName: category },
+          { slug: category }
+        ]
+      });
+
+      let matchedDisplayName = null;
+      const navConfig = await SiteConfig.findOne({ section: 'category_nav' });
+      if (navConfig && navConfig.data && navConfig.data.items) {
+        const item = navConfig.data.items.find(i => i.bloggerLabel === category || i.label === category);
+        if (item) matchedDisplayName = item.label;
+      }
+
+      const categoryTerms = [category];
+      if (catDoc) {
+        if (catDoc.displayName) categoryTerms.push(catDoc.displayName);
+        if (catDoc.bloggerLabel) categoryTerms.push(catDoc.bloggerLabel);
+      }
+      if (matchedDisplayName) {
+        categoryTerms.push(matchedDisplayName);
+      }
+
       filter.$or = [
-        { category: category },
-        { allCategories: category }
+        { category: { $in: categoryTerms } },
+        { allCategories: { $in: categoryTerms } }
       ];
     }
 

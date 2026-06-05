@@ -35,18 +35,13 @@ module.exports = {
 
   category_nav: {
     items: [
-      { label: "All Topics",            bloggerLabel: "",                   active: true, order: 0 },
-      { label: "CRISPR & Gene Editing", bloggerLabel: "CRISPR",            active: true, order: 1 },
-      { label: "Biopharmaceuticals",    bloggerLabel: "Biopharmaceuticals", active: true, order: 2 },
-      { label: "Synthetic Biology",     bloggerLabel: "SyntheticBiology",   active: true, order: 3 },
-      { label: "Genomics & Sequencing", bloggerLabel: "Genomics",           active: true, order: 4 },
-      { label: "Agricultural Biotech",  bloggerLabel: "AgriTech",           active: true, order: 5 },
-      { label: "Bioinformatics",        bloggerLabel: "Bioinformatics",     active: true, order: 6 },
-      { label: "Clinical Trials",       bloggerLabel: "ClinicalTrials",     active: true, order: 7 },
-      { label: "Protein Engineering",   bloggerLabel: "ProteinEngineering", active: true, order: 8 },
-      { label: "Microbiome",            bloggerLabel: "Microbiome",         active: true, order: 9 },
-      { label: "Lab Tools & Reviews",   bloggerLabel: "LabTools",           active: true, order: 10 },
-      { label: "Regulatory",            bloggerLabel: "Regulatory",         active: true, order: 11 }
+      { label: "Genomics & Gene Editing",                bloggerLabel: "Genomics_GeneEditing",            active: true, order: 0 },
+      { label: "Biopharmaceuticals",                     bloggerLabel: "Biopharmaceuticals_DrugDiscovery", active: true, order: 1 },
+      { label: "Bioinformatics",                         bloggerLabel: "Bioinformatics",                  active: true, order: 2 },
+      { label: "Synthetic Biology",                      bloggerLabel: "SyntheticBiology_ProteinEngineering", active: true, order: 3 },
+      { label: "Industrial Biotechnology",                bloggerLabel: "IndustrialBiotechnology",          active: true, order: 4 },
+      { label: "Agricultural Biotechnology",             bloggerLabel: "AgriculturalBiotechnology",         active: true, order: 5 },
+      { label: "Clinical Trials & Industry News",        bloggerLabel: "ClinicalTrials_IndustryNews",     active: true, order: 6 }
     ]
   },
 

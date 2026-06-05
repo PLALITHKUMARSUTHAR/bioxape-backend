@@ -96,18 +96,38 @@ app.use((err, req, res, next) => {
 
 // ── Seed default site config on first boot ───────────────────
 const SiteConfig = require('./models/SiteConfig');
+const Category = require('./models/Category');
 const defaultSiteData = require('./utils/defaultSiteData');
 
 const seedDefaults = async () => {
   try {
     console.log('🌱 Checking site configuration sections...');
     for (const [section, data] of Object.entries(defaultSiteData)) {
-      const exists = await SiteConfig.findOne({ section });
-      if (!exists) {
-        console.log(`🌱 Seeding missing section: ${section}...`);
-        await SiteConfig.create({ section, data });
+      if (section === 'category_nav') {
+        console.log(`🌱 Updating category_nav configuration...`);
+        await SiteConfig.findOneAndUpdate({ section }, { data }, { upsert: true });
+      } else {
+        const exists = await SiteConfig.findOne({ section });
+        if (!exists) {
+          console.log(`🌱 Seeding missing section: ${section}...`);
+          await SiteConfig.create({ section, data });
+        }
       }
     }
+    
+    console.log('🌱 Syncing Category collection...');
+    const catNavItems = defaultSiteData.category_nav.items;
+    await Category.deleteMany({});
+    for (const item of catNavItems) {
+      await Category.create({
+        displayName: item.label,
+        bloggerLabel: item.bloggerLabel,
+        slug: item.label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+        order: item.order,
+        active: true
+      });
+    }
+    console.log('✅ Category collection synced successfully');
     console.log('✅ Site config checks complete');
   } catch (err) {
     console.error('Seed error:', err.message);
