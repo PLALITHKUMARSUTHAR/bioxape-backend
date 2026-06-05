@@ -139,6 +139,36 @@ module.exports = {
     showCoverImage: true
   },
 
+  research_spotlight: {
+    hero: {
+      journal: "Nature Biotechnology · May 2026",
+      ifScore: "54.9",
+      title: "In Vivo Epigenome Editing Restores Vision",
+      excerpt: "A breakthrough epigenome editing tool successfully reverses cellular aging hallmarks in ocular tissues.",
+      paperUrl: "https://www.nature.com/nbt",
+      stats: [
+        { value: "8.2x", label: "Increased efficacy" },
+        { value: "0", label: "Off-target effects" },
+        { value: "12m", label: "Therapeutic retention" },
+        { value: "FDA", label: "Fast-track status" }
+      ]
+    },
+    cards: [
+      {
+        journal: "Science · April 2026",
+        title: "Synthetic Genomes Created from Scratch",
+        excerpt: "Researchers synthesize the entire chromosome structure of yeast, paving the way for custom biological manufacturing.",
+        paperUrl: "https://www.science.org"
+      },
+      {
+        journal: "Cell · March 2026",
+        title: "CAR-T Cells Programmed to Target Cancer Stealth Vectors",
+        excerpt: "Newly engineered receptors bypass solid tumour shield barriers to trigger complete elimination.",
+        paperUrl: "https://www.cell.com"
+      }
+    ]
+  },
+
   adsense_slots: {
     leaderboard1:    { code: "", active: false },
     leaderboard2:    { code: "", active: false },

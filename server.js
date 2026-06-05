@@ -97,14 +97,15 @@ app.use((err, req, res, next) => {
 // ── Seed default site config on first boot ───────────────────
 const SiteConfig = require('./models/SiteConfig');
 const Category = require('./models/Category');
+const Post = require('./models/Post');
 const defaultSiteData = require('./utils/defaultSiteData');
 
 const seedDefaults = async () => {
   try {
     console.log('🌱 Checking site configuration sections...');
     for (const [section, data] of Object.entries(defaultSiteData)) {
-      if (section === 'category_nav') {
-        console.log(`🌱 Updating category_nav configuration...`);
+      if (section === 'category_nav' || section === 'research_spotlight') {
+        console.log(`🌱 Updating/Seeding section: ${section}...`);
         await SiteConfig.findOneAndUpdate({ section }, { data }, { upsert: true });
       } else {
         const exists = await SiteConfig.findOne({ section });
@@ -128,6 +129,42 @@ const seedDefaults = async () => {
       });
     }
     console.log('✅ Category collection synced successfully');
+
+    console.log('🌱 Migrating existing posts categories...');
+    const oldBiopharma = [
+      "Biopharmaceuticals & Drug Discovery",
+      "Biopharmaceuticals and Drug Discovery",
+      "biopharmaceuticals & drug discovery",
+      "biopharmaceuticals and drug discovery"
+    ];
+    const oldSynbio = [
+      "Synthetic Biology & Protein Engineering",
+      "Synthetic Biology and Protein Engineering",
+      "synthetic biology & protein engineering",
+      "synthetic biology and protein engineering"
+    ];
+
+    const upPrimaryBiopharma = await Post.updateMany(
+      { category: { $in: oldBiopharma } },
+      { category: "Biopharmaceuticals" }
+    );
+    const upPrimarySynbio = await Post.updateMany(
+      { category: { $in: oldSynbio } },
+      { category: "Synthetic Biology" }
+    );
+
+    const upAllBiopharma = await Post.updateMany(
+      { allCategories: { $in: oldBiopharma } },
+      { $set: { "allCategories.$[elem]": "Biopharmaceuticals" } },
+      { arrayFilters: [{ "elem": { $in: oldBiopharma } }] }
+    );
+    const upAllSynbio = await Post.updateMany(
+      { allCategories: { $in: oldSynbio } },
+      { $set: { "allCategories.$[elem]": "Synthetic Biology" } },
+      { arrayFilters: [{ "elem": { $in: oldSynbio } }] }
+    );
+
+    console.log(`✅ Category migrations complete: Primary (${upPrimaryBiopharma.modifiedCount} biopharma, ${upPrimarySynbio.modifiedCount} synbio), allCategories (${upAllBiopharma.modifiedCount} biopharma, ${upAllSynbio.modifiedCount} synbio)`);
     console.log('✅ Site config checks complete');
   } catch (err) {
     console.error('Seed error:', err.message);
