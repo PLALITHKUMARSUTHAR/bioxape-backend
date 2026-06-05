@@ -41,7 +41,8 @@ module.exports = {
       { label: "Synthetic Biology",                      bloggerLabel: "SyntheticBiology_ProteinEngineering", active: true, order: 3 },
       { label: "Industrial Biotechnology",                bloggerLabel: "IndustrialBiotechnology",          active: true, order: 4 },
       { label: "Agricultural Biotechnology",             bloggerLabel: "AgriculturalBiotechnology",         active: true, order: 5 },
-      { label: "Clinical Trials & Industry News",        bloggerLabel: "ClinicalTrials_IndustryNews",     active: true, order: 6 }
+      { label: "Clinical Trials",                         bloggerLabel: "ClinicalTrials",                  active: true, order: 6 },
+      { label: "Industry News",                           bloggerLabel: "IndustryNews",                    active: true, order: 7 }
     ]
   },
 

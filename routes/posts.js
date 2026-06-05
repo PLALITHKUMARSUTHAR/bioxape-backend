@@ -79,9 +79,13 @@ const CATEGORY_MAP = {
     "agricultural biotechnology", "agricultural biotech", "agritech", "gm crops", 
     "plant genetics", "pest resistance", "crop yield", "crispr plants", "biofertilizers"
   ],
-  "Clinical Trials & Industry News": [
-    "clinical trials & industry news", "clinical trials", "industry news", "fda approval", 
-    "biotech business", "market trends", "funding", "patents", "biotech policy"
+  "Clinical Trials": [
+    "clinical trials", "clinical trial", "fda approval", "fda", "clinical phases", 
+    "phase i", "phase ii", "phase iii", "therapeutics trials", "approvals"
+  ],
+  "Industry News": [
+    "industry news", "biotech business", "market trends", "funding", "patents", 
+    "biotech policy", "regulatory", "acquisition", "venture capital", "startup", "ma"
   ]
 };
 

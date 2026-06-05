@@ -143,6 +143,12 @@ const seedDefaults = async () => {
       "synthetic biology & protein engineering",
       "synthetic biology and protein engineering"
     ];
+    const oldClinicalNews = [
+      "Clinical Trials & Industry News",
+      "Clinical Trials and Industry News",
+      "clinical trials & industry news",
+      "clinical trials and industry news"
+    ];
 
     const upPrimaryBiopharma = await Post.updateMany(
       { category: { $in: oldBiopharma } },
@@ -164,7 +170,34 @@ const seedDefaults = async () => {
       { arrayFilters: [{ "elem": { $in: oldSynbio } }] }
     );
 
-    console.log(`✅ Category migrations complete: Primary (${upPrimaryBiopharma.modifiedCount} biopharma, ${upPrimarySynbio.modifiedCount} synbio), allCategories (${upAllBiopharma.modifiedCount} biopharma, ${upAllSynbio.modifiedCount} synbio)`);
+    const postsToMigrate = await Post.find({
+      $or: [
+        { category: { $in: oldClinicalNews } },
+        { allCategories: { $in: oldClinicalNews } }
+      ]
+    });
+    
+    let migratedClinicalNewsCount = 0;
+    for (const post of postsToMigrate) {
+      let isClinical = false;
+      const text = ((post.title || "") + " " + (post.excerpt || "")).toLowerCase();
+      if (text.includes("trial") || text.includes("clinical") || text.includes("fda") || text.includes("patient") || text.includes("phase")) {
+        isClinical = true;
+      }
+      const newCat = isClinical ? "Clinical Trials" : "Industry News";
+      
+      if (oldClinicalNews.includes(post.category)) {
+        post.category = newCat;
+      }
+      post.allCategories = post.allCategories.map(cat => 
+        oldClinicalNews.includes(cat) ? newCat : cat
+      );
+      post.markModified('allCategories');
+      await post.save();
+      migratedClinicalNewsCount++;
+    }
+
+    console.log(`✅ Category migrations complete: Primary (${upPrimaryBiopharma.modifiedCount} biopharma, ${upPrimarySynbio.modifiedCount} synbio), allCategories (${upAllBiopharma.modifiedCount} biopharma, ${upAllSynbio.modifiedCount} synbio), Clinical/News split (${migratedClinicalNewsCount} posts)`);
     console.log('✅ Site config checks complete');
   } catch (err) {
     console.error('Seed error:', err.message);
