@@ -40,6 +40,7 @@ app.use(cors({
       origin === 'null' || 
       origin.startsWith('http://localhost') || 
       origin.startsWith('http://127.0.0.1') || 
+      origin.endsWith('.vercel.app') ||
       allowedOrigins.includes(origin)
     ) {
       callback(null, true);
@@ -65,6 +66,7 @@ app.use('/api/notify',    require('./routes/notify'));
 app.use('/api/upload',    require('./routes/upload'));
 app.use('/api/subscribe', require('./routes/subscribe'));
 app.use('/api/store',     require('./routes/store'));
+app.use('/api/forum',     require('./routes/forum.routes'));
 
 // ── Health Check ─────────────────────────────────────────────
 app.get('/', (req, res) => {
@@ -78,6 +80,10 @@ app.get('/', (req, res) => {
 
 app.get('/api/health', (req, res) => {
   res.json({ success: true, status: 'healthy', uptime: process.uptime() });
+});
+
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' });
 });
 
 // ── 404 Handler ──────────────────────────────────────────────
