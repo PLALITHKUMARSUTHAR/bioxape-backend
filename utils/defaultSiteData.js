@@ -30,7 +30,7 @@ module.exports = {
       { title: "Biocon mRNA Plant Goes Live - 200M Doses Capacity", meta: "May 6 · 5 min", emoji: "https://images.unsplash.com/photo-1532187643603-ba119ca4109e?q=80&w=600&auto=format&fit=crop", themeClass: "th-a", tagText: "Industry", tagClass: "ta" },
       { title: "AlphaFold 3 vs RoseTTAFold: Head-to-Head Benchmark", meta: "May 5 · 7 min", emoji: "https://images.unsplash.com/photo-1507668077129-56e32842fceb?q=80&w=600&auto=format&fit=crop", themeClass: "th-b", tagText: "Research", tagClass: "tb" },
       { title: "GM Mustard Gets Final Approval - India First Biotech Crop", meta: "May 4 · 4 min", emoji: "https://images.unsplash.com/photo-1530595467537-0b5996c41f2d?q=80&w=600&auto=format&fit=crop", themeClass: "th-p", tagText: "AgriTech", tagClass: "tp" },
-      { title: "CAR-T Therapy Succeeds in Autoimmune Conditions", meta: "May 3 · 6 min", emoji: "https://images.unsplash.com/photo-1530026405186-ed1ea0ac7a63?q=80&w=600&auto=format&fit=crop", themeClass: "th-r", tagText: "Medical", tagClass: "tr" }
+      { title: "CAR-T Therapy Succeeds in Autoimmune Conditions", meta: "May 3 · 6 min", emoji: "https://images.unsplash.com/photo-1579684385127-1ef15d508118?q=80&w=600&auto=format&fit=crop", themeClass: "th-r", tagText: "Medical", tagClass: "tr" }
     ]
   },
 
