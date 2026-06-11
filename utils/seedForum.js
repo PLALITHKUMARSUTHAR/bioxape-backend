@@ -7,7 +7,8 @@ const categories = [
   { name: "Research & Papers",  slug: "research",      icon: "📄", color: "#5BAD6F" },
   { name: "Tools & Methods",    slug: "tools",         icon: "🔬", color: "#E88B3A" },
   { name: "Career & Education", slug: "career",        icon: "🎓", color: "#9B59B6" },
-  { name: "Announcements",      slug: "announcements", icon: "📢", color: "#E74C3C" }
+  { name: "Announcements",      slug: "announcements", icon: "📢", color: "#E74C3C" },
+  { name: "Help & Support",     slug: "help",          icon: "❓", color: "#16A085" }
 ];
 
 const seedForum = async () => {
