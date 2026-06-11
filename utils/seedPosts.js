@@ -10,23 +10,30 @@ const seedPosts = async () => {
     console.log('🌱 Connecting to database...');
     await connectDB();
 
-    // 1. Get or create an author user
-    let user = await User.findOne({ email: 'admin@bioxape.com' });
+    // 1. Get or create the author user "dhamu1"
+    let user = await User.findOne({ 
+      $or: [
+        { email: 'dhamu1@bioxape.com' },
+        { name: 'dhamu1' }
+      ] 
+    });
+
     if (!user) {
-      user = await User.findOne({});
-    }
-    if (!user) {
-      console.log('🌱 Creating a mock admin user for sample posts...');
+      console.log('🌱 Creating user "dhamu1" for sample posts...');
       user = await User.create({
-        name: 'Dr. Sarah Jenkins',
-        email: 'sarah.jenkins@bioxape.com',
-        role: 'admin',
+        name: 'dhamu1',
+        email: 'dhamu1@bioxape.com',
+        role: 'author',
         status: 'active',
         passwordHash: '$2a$10$abcdefghijklmnopqrstuv' // placeholder hash
       });
+    } else {
+      // Ensure the name is exactly dhamu1
+      user.name = 'dhamu1';
+      await user.save();
     }
 
-    console.log(`🌱 Using user: ${user.name} (${user._id})`);
+    console.log(`🌱 Using author user: ${user.name} (${user._id})`);
 
     // 2. Fetch categories
     const categories = await ForumCategory.find();
@@ -40,8 +47,11 @@ const seedPosts = async () => {
     const toolsCat = categories.find(c => c.slug === 'tools') || categories[0];
 
     // 3. Clear existing posts and comments to start fresh
-    await ForumPost.deleteMany({ author: user._id });
+    await ForumPost.deleteMany({});
     await ForumComment.deleteMany({});
+    
+    // Reset all category post counts
+    await ForumCategory.updateMany({}, { $set: { postCount: 0 } });
 
     console.log('🌱 Creating sample forum posts...');
 
@@ -110,7 +120,7 @@ Please introduce yourself below and tell us about your research area!`,
     await ForumPost.findByIdAndUpdate(post3._id, { $inc: { commentCount: 1 } });
 
     // Comment on AlphaFold post
-    const comment1 = await ForumComment.create({
+    await ForumComment.create({
       post: post2._id,
       author: user._id,
       body: 'In our experience, ESM3 is incredibly fast for generating initial backbones, but we still run Rosetta energy minimization steps afterwards to verify stability.',
@@ -118,7 +128,7 @@ Please introduce yourself below and tell us about your research area!`,
     });
     await ForumPost.findByIdAndUpdate(post2._id, { $inc: { commentCount: 1 } });
 
-    console.log('✅ Sample posts and comments seeded successfully!');
+    console.log('✅ Sample posts and comments seeded successfully under author "dhamu1"!');
     process.exit(0);
   } catch (error) {
     console.error('❌ Error seeding posts:', error);
