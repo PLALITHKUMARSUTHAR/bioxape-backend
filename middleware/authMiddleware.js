@@ -42,6 +42,33 @@ const protect = async (req, res, next) => {
   }
 };
 
+const optionalProtect = async (req, res, next) => {
+  try {
+    let token;
+
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+      token = req.headers.authorization.split(' ')[1];
+    } else if (req.cookies && req.cookies.bioxape_token) {
+      token = req.cookies.bioxape_token;
+    }
+
+    if (!token) {
+      return next();
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    const user = await User.findById(decoded.id).select('-passwordHash -googleId -inviteToken -passwordResetToken');
+    if (user && user.status !== 'suspended') {
+      req.user = user;
+    }
+    next();
+  } catch (err) {
+    // Proceed without throwing error if token is invalid/expired in optional auth
+    next();
+  }
+};
+
 // ── Role guards ───────────────────────────────────────────────
 
 const isAdmin = (req, res, next) => {
@@ -66,4 +93,4 @@ const generateToken = (userId) => {
   });
 };
 
-module.exports = { protect, isAdmin, isEditor, isAuthor, generateToken };
+module.exports = { protect, optionalProtect, isAdmin, isEditor, isAuthor, generateToken };

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const forumController = require('../controllers/forum.controller');
-const { protect, isAdmin } = require('../middleware/auth.middleware');
+const { protect, optionalProtect, isAdmin } = require('../middleware/auth.middleware');
 
 // Category Routes
 router.get('/categories', forumController.getCategories);
@@ -14,7 +14,7 @@ router.get('/trending', forumController.getTrending);
 // Post Routes
 router.get('/posts', forumController.getPosts);
 router.get('/posts/:id', forumController.getPostById);
-router.post('/posts', protect, forumController.createPost);
+router.post('/posts', optionalProtect, forumController.createPost);
 router.put('/posts/:id', protect, forumController.updatePost);
 router.delete('/posts/:id', protect, forumController.deletePost);
 router.post('/posts/:id/vote', protect, forumController.votePost);

@@ -9,4 +9,7 @@ const forumCategorySchema = new mongoose.Schema({
   postCount:   { type: Number, default: 0 },
 }, { timestamps: { createdAt: true, updatedAt: false } });
 
+// Index name for sorting
+forumCategorySchema.index({ name: 1 });
+
 module.exports = mongoose.models.ForumCategory || mongoose.model('ForumCategory', forumCategorySchema);

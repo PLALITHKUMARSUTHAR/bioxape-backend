@@ -28,9 +28,19 @@ function buildTree(comments) {
 
 // ── Category Controllers ──────────────────────────────────────
 
+let categoriesCache = null;
+let lastCacheTime = 0;
+const CACHE_TTL = 30 * 1000; // Cache for 30 seconds
+
 exports.getCategories = async (req, res) => {
   try {
-    const categories = await ForumCategory.find().sort({ name: 1 });
+    const now = Date.now();
+    if (categoriesCache && (now - lastCacheTime < CACHE_TTL)) {
+      return res.json({ success: true, data: categoriesCache });
+    }
+    const categories = await ForumCategory.find().sort({ name: 1 }).lean();
+    categoriesCache = categories;
+    lastCacheTime = now;
     res.json({ success: true, data: categories });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -44,6 +54,7 @@ exports.createCategory = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Name and slug are required' });
     }
     const category = await ForumCategory.create({ name, slug, description, icon, color });
+    categoriesCache = null; // Invalidate cache
     res.status(201).json({ success: true, data: category });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -154,7 +165,7 @@ exports.createPost = async (req, res) => {
     const post = await ForumPost.create({
       title,
       body,
-      author: req.user._id,
+      author: req.user ? req.user._id : undefined,
       category: categoryId,
       tags: tags || []
     });
