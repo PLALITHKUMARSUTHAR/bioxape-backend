@@ -132,11 +132,19 @@ siteRouter.get('/news-feed', async (req, res) => {
     }
     
     const maxLimit = parseInt(limit, 10) || 50;
+    // Fetch a bit extra in case some are filtered
     const news = await ExternalNews.find(filter)
       .sort({ publishedAt: -1 })
-      .limit(maxLimit);
+      .limit(maxLimit + 30);
       
-    return res.json({ success: true, data: news });
+    const SENSITIVE_FILTER_REGEX = /\b(sex|sexual|sexuality|lgbtq?|gay|lesbian|bisexual|queer|transgender|pride|homosexual|homosexuality|homophobia|transphobia|gender-?identity)\b/i;
+    
+    const filteredNews = news.filter(item => {
+      const text = `${item.title} ${item.excerpt || ''}`;
+      return !SENSITIVE_FILTER_REGEX.test(text);
+    }).slice(0, maxLimit);
+      
+    return res.json({ success: true, data: filteredNews });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }
