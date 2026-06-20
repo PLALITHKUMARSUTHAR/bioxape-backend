@@ -204,6 +204,24 @@ const seedDefaults = async () => {
     }
 
     console.log(`✅ Category migrations complete: Primary (${upPrimaryBiopharma.modifiedCount} biopharma, ${upPrimarySynbio.modifiedCount} synbio), allCategories (${upAllBiopharma.modifiedCount} biopharma, ${upAllSynbio.modifiedCount} synbio), Clinical/News split (${migratedClinicalNewsCount} posts)`);
+
+    // Cleanup old placeholder news from existing news_strip config
+    const newsStripConfig = await SiteConfig.findOne({ section: 'news_strip' });
+    if (newsStripConfig && newsStripConfig.data && newsStripConfig.data.items) {
+      const hasPlaceholders = newsStripConfig.data.items.some(item => {
+        const text = item.text || item.title || '';
+        return text.includes("WHO publishes updated Global Biosafety") ||
+               text.includes("India DBT allocates Rs 1200") ||
+               text.includes("Moderna personalised cancer");
+      });
+      if (hasPlaceholders) {
+        console.log("🧹 Found old placeholder news in database. Clearing to allow latest scraped news...");
+        newsStripConfig.data.items = [];
+        newsStripConfig.markModified('data');
+        await newsStripConfig.save();
+      }
+    }
+
     console.log('✅ Site config checks complete');
   } catch (err) {
     console.error('Seed error:', err.message);

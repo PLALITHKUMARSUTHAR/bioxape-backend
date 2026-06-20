@@ -48,11 +48,7 @@ module.exports = {
   },
 
   news_strip: {
-    items: [
-      { text: "WHO publishes updated Global Biosafety Framework impacting BSL-4 lab regulations worldwide", tagText: "Regulatory", tagClass: "tr", timeAgo: "2h ago", active: true },
-      { text: "India DBT allocates Rs 1200 Cr for synthetic biology research hubs across IITs and IISc",   tagText: "Funding",    tagClass: "tg", timeAgo: "5h ago", active: true },
-      { text: "Moderna personalised cancer mRNA vaccine shows 50% reduction in recurrence in Phase III",   tagText: "Clinical",   tagClass: "tb", timeAgo: "8h ago", active: true }
-    ]
+    items: []
   },
 
   trending: {
