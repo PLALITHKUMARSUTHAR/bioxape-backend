@@ -21,7 +21,10 @@ const FEEDS = [
   { source: 'ScienceDaily', url: 'https://www.sciencedaily.com/rss/top/science.xml' },
   { source: 'GEN', url: 'https://www.genengnews.com/feed/' },
   { source: 'Endpoints News', url: 'https://endpts.com/feed/' },
-  { source: 'Nature Biotechnology', url: 'https://www.nature.com/nbt.rss' }
+  { source: 'Nature Biotechnology', url: 'https://www.nature.com/nbt.rss' },
+  { source: 'Nature', url: 'https://www.nature.com/nature.rss' },
+  { source: 'Nature Medicine', url: 'https://www.nature.com/nm.rss' },
+  { source: 'Science', url: 'https://www.science.org/rss/news_current.xml' }
 ];
 
 function classifyNews(title, excerpt = '') {
@@ -105,7 +108,8 @@ async function runScraper() {
           continue;
         }
 
-        const category = feed.source === 'Nature Biotechnology' ? 'research' : classifyNews(item.title, item.contentSnippet || item.content || '');
+        const isAcademicJournal = ['Nature Biotechnology', 'Nature', 'Nature Medicine', 'Science'].includes(feed.source);
+        const category = isAcademicJournal ? 'research' : classifyNews(item.title, item.contentSnippet || item.content || '');
         const publishedAt = item.pubDate ? new Date(item.pubDate) : new Date();
 
         // Perform upsert based on the link (we use link as a unique identifier)
