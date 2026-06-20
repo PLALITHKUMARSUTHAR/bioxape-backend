@@ -9,7 +9,7 @@
 
 const express    = require('express');
 const siteRouter = express.Router();
-const { SiteConfig, Category } = require('../models/index');
+const { SiteConfig, Category, ExternalNews } = require('../models/index');
 const { protect, isAdmin } = require('../middleware/authMiddleware');
 const defaultSiteData = require('../utils/defaultSiteData');
 
@@ -117,6 +117,26 @@ siteRouter.put('/adsense', protect, isAdmin, async (req, res) => {
     await config.save();
 
     return res.json({ success: true, message: 'AdSense slot saved successfully.', data: config });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// GET /api/site/news-feed — Public (fetches scraped biotechnology news)
+siteRouter.get('/news-feed', async (req, res) => {
+  try {
+    const { category, limit } = req.query;
+    const filter = {};
+    if (category) {
+      filter.category = category;
+    }
+    
+    const maxLimit = parseInt(limit, 10) || 50;
+    const news = await ExternalNews.find(filter)
+      .sort({ publishedAt: -1 })
+      .limit(maxLimit);
+      
+    return res.json({ success: true, data: news });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }

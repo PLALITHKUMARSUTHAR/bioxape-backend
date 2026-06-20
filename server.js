@@ -211,6 +211,22 @@ const seedDefaults = async () => {
 };
 seedDefaults();
 
+// ── News Scraper Cron Job ────────────────────────────────────
+const cron = require('node-cron');
+const { runScraper } = require('./utils/newsScraper');
+
+// Schedule news scraping every 6 hours (0 */6 * * *)
+cron.schedule('0 */6 * * *', () => {
+  console.log('⏰ Scheduled cron: Running biotechnology news scraper...');
+  runScraper().catch(err => console.error('Error in scheduled scraper:', err));
+});
+
+// Run scraper once on boot (after a short delay to ensure DB is connected)
+setTimeout(() => {
+  console.log('🚀 Boot: Running initial biotechnology news scraper...');
+  runScraper().catch(err => console.error('Error in initial scraper:', err));
+}, 5000);
+
 // ── Start Server ─────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
