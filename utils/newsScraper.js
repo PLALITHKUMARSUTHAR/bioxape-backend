@@ -3,7 +3,8 @@ const ExternalNews = require('../models/ExternalNews');
 
 const parser = new Parser({
   headers: {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8'
   },
   timeout: 15000
 });
@@ -19,7 +20,8 @@ const FEEDS = [
   { source: 'BioPharma Dive', url: 'https://www.biopharmadive.com/feeds/news/' },
   { source: 'ScienceDaily', url: 'https://www.sciencedaily.com/rss/top/science.xml' },
   { source: 'GEN', url: 'https://www.genengnews.com/feed/' },
-  { source: 'Endpoints News', url: 'https://endpts.com/feed/' }
+  { source: 'Endpoints News', url: 'https://endpts.com/feed/' },
+  { source: 'Nature Biotechnology', url: 'https://www.nature.com/nbt.rss' }
 ];
 
 function classifyNews(title, excerpt = '') {
@@ -103,7 +105,7 @@ async function runScraper() {
           continue;
         }
 
-        const category = classifyNews(item.title, item.contentSnippet || item.content || '');
+        const category = feed.source === 'Nature Biotechnology' ? 'research' : classifyNews(item.title, item.contentSnippet || item.content || '');
         const publishedAt = item.pubDate ? new Date(item.pubDate) : new Date();
 
         // Perform upsert based on the link (we use link as a unique identifier)
@@ -132,22 +134,36 @@ async function runScraper() {
 
   console.log(`✅ News scraper finished. Added ${newArticlesCount} new articles.`);
 
-  // Prune database: keep only the latest 300 articles overall to prevent DB bloat
+  // Prune database: keep only the latest 300 non-event articles to prevent DB bloat
   try {
     const keepLimit = 300;
-    const count = await ExternalNews.countDocuments({});
+    const count = await ExternalNews.countDocuments({ category: { $ne: 'event' } });
     if (count > keepLimit) {
       const skipCount = keepLimit;
-      const oldestToKeep = await ExternalNews.find({})
+      const oldestToKeep = await ExternalNews.find({ category: { $ne: 'event' } })
         .sort({ publishedAt: -1 })
         .skip(skipCount)
         .limit(1);
 
       if (oldestToKeep.length > 0) {
         const thresholdDate = oldestToKeep[0].publishedAt;
-        const deleteResult = await ExternalNews.deleteMany({ publishedAt: { $lt: thresholdDate } });
+        const deleteResult = await ExternalNews.deleteMany({ 
+          publishedAt: { $lt: thresholdDate },
+          category: { $ne: 'event' }
+        });
         console.log(`🧹 Pruned ${deleteResult.deletedCount} old news articles.`);
       }
+    }
+
+    // Prune events only if they are older than 14 days
+    const fourteenDaysAgo = new Date();
+    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+    const deleteEventsResult = await ExternalNews.deleteMany({
+      category: 'event',
+      publishedAt: { $lt: fourteenDaysAgo }
+    });
+    if (deleteEventsResult.deletedCount > 0) {
+      console.log(`🧹 Pruned ${deleteEventsResult.deletedCount} old events.`);
     }
   } catch (pruneError) {
     console.error('❌ Error pruning external news database:', pruneError.message);
