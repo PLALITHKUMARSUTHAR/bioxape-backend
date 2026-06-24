@@ -182,4 +182,30 @@ async function runScraper() {
   }
 }
 
+if (require.main === module) {
+  // If run directly, connect to MongoDB first, then run the scraper
+  require('dotenv').config();
+  const mongoose = require('mongoose');
+  const dbUri = process.env.MONGODB_URI;
+  if (!dbUri) {
+    console.error('❌ MONGODB_URI is not set in environment.');
+    process.exit(1);
+  }
+  
+  console.log('🔌 Connecting to MongoDB...');
+  mongoose.connect(dbUri)
+    .then(() => {
+      console.log('✅ Connected to MongoDB for scraper execution.');
+      return runScraper();
+    })
+    .then(() => {
+      console.log('🎉 Scraper execution completed successfully.');
+      process.exit(0);
+    })
+    .catch(err => {
+      console.error('❌ Error running scraper:', err);
+      process.exit(1);
+    });
+}
+
 module.exports = { runScraper, FEEDS };
