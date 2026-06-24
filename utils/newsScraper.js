@@ -80,6 +80,14 @@ function classifyNews(title, excerpt = '') {
 async function runScraper() {
   console.log('⏰ Starting news scraper at:', new Date().toISOString());
   
+  // Clear existing non-event news to ensure no old news is displayed
+  try {
+    const deleteRes = await ExternalNews.deleteMany({ category: { $ne: 'event' } });
+    console.log(`🧹 Cleared ${deleteRes.deletedCount} old news articles from database before scraping.`);
+  } catch (err) {
+    console.error('❌ Error clearing old news from database:', err.message);
+  }
+  
   // Cleanup any existing database articles matching sensitive keywords
   try {
     const deleteRes = await ExternalNews.deleteMany({
