@@ -12,6 +12,7 @@ const siteRouter = express.Router();
 const { SiteConfig, Category, ExternalNews } = require('../models/index');
 const { protect, isAdmin } = require('../middleware/authMiddleware');
 const defaultSiteData = require('../utils/defaultSiteData');
+const { runScraper } = require('../utils/newsScraper');
 
 // ── CATEGORIES ROUTING ──────────────────────────────────────────
 
@@ -125,6 +126,33 @@ siteRouter.put('/adsense', protect, isAdmin, async (req, res) => {
 // GET /api/site/news-feed — Public (fetches scraped biotechnology news)
 siteRouter.get('/news-feed', async (req, res) => {
   try {
+    // Check if we need to run the scraper (i.e. if news is empty or older than 6 hours)
+    const latestNews = await ExternalNews.findOne().sort({ createdAt: -1 });
+    const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
+
+    if (!latestNews) {
+      console.log('🔄 ExternalNews database is empty. Running scraper synchronously...');
+      try {
+        await runScraper();
+      } catch (err) {
+        console.error('❌ Error in synchronous news scraper:', err);
+      }
+    } else if (latestNews.createdAt < sixHoursAgo) {
+      if (!global.isScrapingNews) {
+        global.isScrapingNews = true;
+        console.log('🔄 News feed requested and is older than 6 hours. Running scraper in background...');
+        runScraper()
+          .then(() => {
+            console.log('✅ Background news scraper run complete.');
+            global.isScrapingNews = false;
+          })
+          .catch(err => {
+            console.error('❌ Error in background news scraper:', err);
+            global.isScrapingNews = false;
+          });
+      }
+    }
+
     const { category, limit } = req.query;
     const filter = {};
     if (category) {
