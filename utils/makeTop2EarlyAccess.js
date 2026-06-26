@@ -1,6 +1,6 @@
 require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
 const connectDB = require('../config/db');
-const ForumPost = require('../models/ForumPost');
+const Post = require('../models/Post');
 const User = require('../models/User');
 
 const run = async () => {
@@ -8,27 +8,27 @@ const run = async () => {
     console.log('🔌 Connecting to MongoDB...');
     await connectDB();
 
-    console.log('🔍 Fetching top 2 posts...');
-    const posts = await ForumPost.find()
-      .sort({ isPinned: -1, createdAt: -1 })
+    console.log('🔍 Fetching top 2 blog posts...');
+    const posts = await Post.find({ status: { $in: ['published', 'approved'] } })
+      .sort({ publishedAt: -1 })
       .limit(2);
 
     if (posts.length === 0) {
-      console.log('❌ No posts found in database.');
+      console.log('❌ No published/approved posts found in database.');
       process.exit(0);
     }
 
-    console.log(`Found ${posts.length} posts to update.`);
+    console.log(`Found ${posts.length} blog posts to update.`);
 
     for (let i = 0; i < posts.length; i++) {
       const post = posts[i];
-      console.log(`Updating post ${i + 1}: "${post.title}"`);
+      console.log(`Updating blog post ${i + 1}: "${post.title}"`);
       
-      // Update createdAt to now using raw MongoDB collection update to bypass Mongoose entirely
-      await ForumPost.collection.updateOne({ _id: post._id }, { $set: { createdAt: new Date() } });
+      // Update publishedAt to now using raw MongoDB collection update
+      await Post.collection.updateOne({ _id: post._id }, { $set: { publishedAt: new Date() } });
 
       // Find author and update role to 'editor' if not already editor or admin
-      const author = await User.findById(post.author);
+      const author = await User.findById(post.authorId);
       if (author) {
         if (author.role !== 'admin' && author.role !== 'editor') {
           author.role = 'editor';
@@ -38,7 +38,7 @@ const run = async () => {
       }
     }
 
-    console.log('✅ Top 2 posts successfully updated to Early Access status!');
+    console.log('✅ Top 2 blog posts successfully updated to Early Access status!');
     process.exit(0);
   } catch (error) {
     console.error('❌ Error updating posts:', error);
