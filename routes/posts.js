@@ -170,7 +170,17 @@ router.get('/public/feed', async (req, res) => {
       .limit(parseInt(limit))
       .skip((parseInt(page) - 1) * parseInt(limit));
 
-    const latestTwo = await Post.find({ status: { $in: ['published', 'approved'] } })
+    const tenDaysAgo = new Date();
+    tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
+
+    const staffUsers = await User.find({ role: { $in: ['admin', 'editor'] } }).select('_id');
+    const staffUserIds = staffUsers.map(u => u._id);
+
+    const latestTwo = await Post.find({
+      status: { $in: ['published', 'approved'] },
+      authorId: { $in: staffUserIds },
+      publishedAt: { $gte: tenDaysAgo }
+    })
       .sort({ publishedAt: -1 })
       .limit(2)
       .select('_id')
@@ -204,7 +214,17 @@ router.get('/public/:id', async (req, res) => {
     post.viewCount = (post.viewCount || 0) + 1;
     await post.save();
 
-    const latestTwo = await Post.find({ status: { $in: ['published', 'approved'] } })
+    const tenDaysAgo = new Date();
+    tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
+
+    const staffUsers = await User.find({ role: { $in: ['admin', 'editor'] } }).select('_id');
+    const staffUserIds = staffUsers.map(u => u._id);
+
+    const latestTwo = await Post.find({
+      status: { $in: ['published', 'approved'] },
+      authorId: { $in: staffUserIds },
+      publishedAt: { $gte: tenDaysAgo }
+    })
       .sort({ publishedAt: -1 })
       .limit(2)
       .select('_id')
