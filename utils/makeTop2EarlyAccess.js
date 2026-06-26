@@ -24,8 +24,8 @@ const run = async () => {
       const post = posts[i];
       console.log(`Updating post ${i + 1}: "${post.title}"`);
       
-      // Update createdAt to now using updateOne to bypass Mongoose timestamp hooks
-      await ForumPost.updateOne({ _id: post._id }, { $set: { createdAt: new Date() } });
+      // Update createdAt to now using raw MongoDB collection update to bypass Mongoose entirely
+      await ForumPost.collection.updateOne({ _id: post._id }, { $set: { createdAt: new Date() } });
 
       // Find author and update role to 'editor' if not already editor or admin
       const author = await User.findById(post.author);
