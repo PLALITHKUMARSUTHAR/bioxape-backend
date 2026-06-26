@@ -170,8 +170,21 @@ router.get('/public/feed', async (req, res) => {
       .limit(parseInt(limit))
       .skip((parseInt(page) - 1) * parseInt(limit));
 
+    const latestTwo = await Post.find({ status: { $in: ['published', 'approved'] } })
+      .sort({ publishedAt: -1 })
+      .limit(2)
+      .select('_id')
+      .lean();
+    const latestTwoIds = latestTwo.map(p => p._id.toString());
+
+    const postsWithEA = posts.map(p => {
+      const pObj = p.toObject();
+      pObj.isEarlyAccess = latestTwoIds.includes(p._id.toString());
+      return pObj;
+    });
+
     const total = await Post.countDocuments(filter);
-    return res.json({ success: true, total, page: parseInt(page), posts });
+    return res.json({ success: true, total, page: parseInt(page), posts: postsWithEA });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }
@@ -190,8 +203,18 @@ router.get('/public/:id', async (req, res) => {
     // Increment view count
     post.viewCount = (post.viewCount || 0) + 1;
     await post.save();
+
+    const latestTwo = await Post.find({ status: { $in: ['published', 'approved'] } })
+      .sort({ publishedAt: -1 })
+      .limit(2)
+      .select('_id')
+      .lean();
+    const latestTwoIds = latestTwo.map(p => p._id.toString());
+
+    const postObj = post.toObject();
+    postObj.isEarlyAccess = latestTwoIds.includes(post._id.toString());
     
-    return res.json({ success: true, post });
+    return res.json({ success: true, post: postObj });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }
